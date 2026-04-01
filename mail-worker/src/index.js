@@ -49,35 +49,39 @@ function getRecipientDomain(email) {
 }
 
 async function ensureSchema(env) {
-	await env.db.exec(`
-		CREATE TABLE IF NOT EXISTS email (
-			email_id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-			send_email TEXT,
-			name TEXT,
-			account_id INTEGER NOT NULL DEFAULT 0,
-			user_id INTEGER NOT NULL DEFAULT 0,
-			subject TEXT,
-			text TEXT,
-			content TEXT,
-			cc TEXT DEFAULT '[]',
-			bcc TEXT DEFAULT '[]',
-			recipient TEXT,
-			to_email TEXT DEFAULT '' NOT NULL,
-			to_name TEXT DEFAULT '' NOT NULL,
-			in_reply_to TEXT DEFAULT '',
-			relation TEXT DEFAULT '',
-			message_id TEXT DEFAULT '',
-			type INTEGER DEFAULT 0 NOT NULL,
-			status INTEGER DEFAULT 0 NOT NULL,
-			resend_email_id TEXT,
-			message TEXT,
-			unread INTEGER DEFAULT 0 NOT NULL,
-			create_time DATETIME DEFAULT CURRENT_TIMESTAMP NOT NULL,
-			is_del INTEGER DEFAULT 0 NOT NULL
-		);
-		CREATE INDEX IF NOT EXISTS idx_email_to_email_time
-			ON email(to_email, create_time DESC);
-	`);
+	await env.db.batch([
+		env.db.prepare(`
+			CREATE TABLE IF NOT EXISTS email (
+				email_id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+				send_email TEXT,
+				name TEXT,
+				account_id INTEGER NOT NULL DEFAULT 0,
+				user_id INTEGER NOT NULL DEFAULT 0,
+				subject TEXT,
+				text TEXT,
+				content TEXT,
+				cc TEXT DEFAULT '[]',
+				bcc TEXT DEFAULT '[]',
+				recipient TEXT,
+				to_email TEXT DEFAULT '' NOT NULL,
+				to_name TEXT DEFAULT '' NOT NULL,
+				in_reply_to TEXT DEFAULT '',
+				relation TEXT DEFAULT '',
+				message_id TEXT DEFAULT '',
+				type INTEGER DEFAULT 0 NOT NULL,
+				status INTEGER DEFAULT 0 NOT NULL,
+				resend_email_id TEXT,
+				message TEXT,
+				unread INTEGER DEFAULT 0 NOT NULL,
+				create_time DATETIME DEFAULT CURRENT_TIMESTAMP NOT NULL,
+				is_del INTEGER DEFAULT 0 NOT NULL
+			)
+		`),
+		env.db.prepare(`
+			CREATE INDEX IF NOT EXISTS idx_email_to_email_time
+			ON email(to_email, create_time DESC)
+		`)
+	]);
 }
 
 async function verifyPublicToken(request, env) {
