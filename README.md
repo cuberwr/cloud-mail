@@ -43,6 +43,38 @@
 |-----------------------|-----------------------|
 | ![](/doc/demo/demo3.png) | ![](/doc/demo/demo4.png) |
 
+## 与 codex-console 兼容
+
+如果你把这个项目作为 `codex-console` 的 CloudMail 后端使用，需要注意一件事：
+
+- `codex-console` 会直接随机生成收件地址，例如 `k9t8sqd20c@example.com`
+- 它不会先调用 Cloud Mail 创建账号
+- 原始 Cloud Mail 在 `noRecipient = CLOSE` 时会直接拒收这类“未注册收件人”邮件
+
+本仓库已补充一个可选兼容开关：
+
+- `codex_console_catch_all = true`
+
+启用后，只要收件域名属于 `domain` 配置中的受管域名，就允许该邮件进入系统并按 `toEmail` 保存，即使这个邮箱账号没有提前在 `account` 表中注册。
+
+### wrangler 配置示例
+
+在 `mail-worker/wrangler.toml` 或你的实际部署变量中增加：
+
+```toml
+[vars]
+domain = ["mail.forja.uk"]
+admin = "admin@mail.forja.uk"
+jwt_secret = "replace-with-your-secret"
+codex_console_catch_all = true
+```
+
+### 适用场景
+
+- OpenAI / Codex / 自动注册工具
+- 任意随机前缀邮箱收码
+- 不想为每个收件地址提前建账号，但仍希望邮件可通过 `/public/emailList` 被查询
+
 
 
 
@@ -151,6 +183,5 @@ cloud-mail
 ## 交流
 
 [Telegram](https://t.me/cloud_mail_tg)
-
 
 

@@ -11,6 +11,34 @@ import roleService from '../service/role-service';
 import userService from '../service/user-service';
 import telegramService from '../service/telegram-service';
 
+function isTruthyEnv(value) {
+	return value === true || value === 'true' || value === '1' || value === 1;
+}
+
+function getRecipientDomain(address) {
+	return String(address || '').split('@')[1]?.toLowerCase() || '';
+}
+
+function hasManagedDomain(env, address) {
+	const domain = getRecipientDomain(address);
+	if (!domain) return false;
+
+	let domains = env.domain;
+	if (typeof domains === 'string') {
+		try {
+			domains = JSON.parse(domains);
+		} catch (error) {
+			domains = [domains];
+		}
+	}
+
+	if (!Array.isArray(domains)) {
+		return false;
+	}
+
+	return domains.map(item => String(item || '').toLowerCase()).includes(domain);
+}
+
 export async function email(message, env, ctx) {
 
 	try {
@@ -26,6 +54,8 @@ export async function email(message, env, ctx) {
 			r2Domain,
 			noRecipient
 		} = await settingService.query({ env });
+
+		const codexCatchAll = isTruthyEnv(env.codex_console_catch_all);
 
 		if (receive === settingConst.receive.CLOSE) {
 			message.setReject('Service suspended');
@@ -45,8 +75,9 @@ export async function email(message, env, ctx) {
 		const email = await PostalMime.parse(content);
 
 		const account = await accountService.selectByEmailIncludeDel({ env: env }, message.to);
+		const allowCatchAllRecipient = codexCatchAll && !account && hasManagedDomain(env, message.to);
 
-		if (!account && noRecipient === settingConst.noRecipient.CLOSE) {
+		if (!account && noRecipient === settingConst.noRecipient.CLOSE && !allowCatchAllRecipient) {
 			message.setReject('Recipient not found');
 			return;
 		}
