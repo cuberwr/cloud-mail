@@ -48,9 +48,18 @@ function getRecipientDomain(email) {
 	return normalizeEmail(email).split('@')[1] || '';
 }
 
+function getDb(env) {
+	const db = env?.db || env?.DB;
+	if (!db) {
+		throw new Error('D1 binding not found: expected env.db or env.DB');
+	}
+	return db;
+}
+
 async function ensureSchema(env) {
-	await env.db.batch([
-		env.db.prepare(`
+	const db = getDb(env);
+	await db.batch([
+		db.prepare(`
 			CREATE TABLE IF NOT EXISTS email (
 				email_id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
 				send_email TEXT,
@@ -77,7 +86,7 @@ async function ensureSchema(env) {
 				is_del INTEGER DEFAULT 0 NOT NULL
 			)
 		`),
-		env.db.prepare(`
+		db.prepare(`
 			CREATE INDEX IF NOT EXISTS idx_email_to_email_time
 			ON email(to_email, create_time DESC)
 		`)
@@ -143,7 +152,8 @@ async function handleEmailList(request, env) {
 
 	await ensureSchema(env);
 
-	const stmt = env.db.prepare(`
+	const db = getDb(env);
+	const stmt = db.prepare(`
 		SELECT
 			email_id AS emailId,
 			send_email AS sendEmail,
@@ -225,7 +235,8 @@ async function handleInbound(message, env) {
 	const recipientList = Array.isArray(parsed?.to) ? parsed.to : [{ address: recipient, name: emailUtils.getName(recipient) }];
 	const toName = recipientList.find(item => normalizeEmail(item.address) === recipient)?.name || emailUtils.getName(recipient);
 
-	await env.db.prepare(`
+	const db = getDb(env);
+	await db.prepare(`
 		INSERT INTO email (
 			send_email, name, account_id, user_id, subject, text, content,
 			cc, bcc, recipient, to_email, to_name, in_reply_to, relation,
