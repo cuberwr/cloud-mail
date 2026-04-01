@@ -103,7 +103,15 @@ app.use('*', async (c, next) => {
 
 		const userPublicToken = await c.env.kv.get(KvConst.PUBLIC_KEY);
 		const publicToken = c.req.header(constant.TOKEN_HEADER);
-		if (publicToken !== userPublicToken) {
+
+		let publicJwt = null;
+		if (publicToken) {
+			publicJwt = await jwtUtils.verifyToken(c, publicToken);
+		}
+
+		const jwtValid = publicJwt?.type === 'public' && publicJwt?.key === userPublicToken;
+
+		if (publicToken !== userPublicToken && !jwtValid) {
 			throw new BizError(t('publicTokenFail'), 401);
 		}
 		return await next();

@@ -14,6 +14,7 @@ import { isDel, roleConst } from '../const/entity-const';
 import email from '../entity/email';
 import userService from './user-service';
 import KvConst from '../const/kv-const';
+import jwtUtils from '../utils/jwt-utils';
 
 const publicService = {
 
@@ -168,7 +169,13 @@ const publicService = {
 
 		await c.env.kv.put(KvConst.PUBLIC_KEY, uuid);
 
-		return {token: uuid}
+		const token = await jwtUtils.generateToken(c, {
+			type: 'public',
+			key: uuid,
+			email: params.email
+		}, 60 * 60);
+
+		return {token}
 	},
 
 	async verifyUser(c, params) {
